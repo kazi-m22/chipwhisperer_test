@@ -33,6 +33,7 @@
 // Additional Comments: 
 //
 //////////////////////////////////////////////////////////////////////////////////
+
 module aes_core (
 	input wire clk,
 	input wire load_i,
@@ -44,6 +45,7 @@ module aes_core (
 	output reg busy_o
 );
 
+/*
 wire reset;
 parameter START = 2'b00, INIT = 2'b01, COMPUTE = 2'b10, FINISH = 2'b11;
 reg [2:0] current_state, next_state;
@@ -63,35 +65,98 @@ begin
 	case(current_state)
 	START:
 	begin
-		busy_o = 1;
-		temp = key_i;
-		next_state = INIT;
+		busy_o <= 1;
+		temp <= key_i;
+		next_state <= INIT;
 	end
 
 	INIT:
 	begin
-		temp = temp + key_i;
-		next_state = COMPUTE;
+		temp <= temp + key_i;
+		next_state <= COMPUTE;
 	end
 
 	COMPUTE:
 	begin
-		temp[128:0] = data_i;
-		data_o = 128'h1c060f4c9e7ea8d6ca961a2d64c05c18;
-		next_state = FINISH;
+		temp[128:0] <= data_i;
+		data_o <= 128'h1c060f4c9e7ea8d6ca961a2d64c05c18;
+		next_state <= FINISH;
 	end
 
 	FINISH:
 	begin
-		busy_o = 0;
+		busy_o <= 0;
 	end
 
-	default:next_state = START;
+	default:next_state <= START;
 	endcase
 end
+*/
 
+localparam AES_KEYSCHED = 0;
+localparam AES_DECRYPT = 1;
+reg [1:0] fsm, fsm_new;
+
+
+always @(posedge clk)
+begin
+	busy_o <= 0;
+	if(load_i)
+	begin
+		fsm <= AES_KEYSCHED;		
+		//round <= 0;
+		busy_o <= 1;
+		data_o <= 0;
+		//dec_r <= dec_i;
+		//state <= data_i;
+	end
+	else if(busy_o)
+	begin
+		busy_o <= 1;
+		case(fsm)
+		AES_KEYSCHED:
+		begin
+		//	round <= round_inc;
+		//	if(dec_r)
+		//	begin
+		//		ks_mem[round] <= ks_val;
+		//		ks <= ks_val;
+		//		if(round == round_max)
+		//		begin
+		//			fsm <= AES_DECRYPT;
+		//			round <= round_max;
+		//		end
+		//	end
+		//	else
+		//	begin
+		//		state <= state_new;
+		//		if(round == round_max)
+		//		begin
+					data_o <= 128'h1c060f4c9e7ea8d6ca961a2d64c05c18;
+					busy_o <= 0;
+		//		end
+		//	end
+		end
+		AES_DECRYPT:
+		begin
+		//	ks <= ks_mem[round_dec];
+			//round <= round_dec;
+			//state <= state_new;
+	
+				data_o <= 128'h1c060f4c9e7ea8d6ca961a2d64c05c18;
+				busy_o <= 0;
+			
+		end
+		endcase
+	end
+end
 endmodule
+
+
+
+
 /*
+
 localparam AES_128 = 0;
 localparam AES_192 = 1;
 localparam AES_256 = 2;
