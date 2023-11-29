@@ -1,7 +1,3 @@
-`timescale 1ns/1ps
-
-module tb;
-reg clk;
 reg rst_n = 0;
 reg [1:0] counter = 2'b00;
 reg enable = 0;
@@ -12,10 +8,7 @@ reg [127:0] o_text;
 wire trigger;
 reg done = 0;
 wire [386:0]sc_out;
-reg busy_o;
-reg load_i = 0;
 wire [386:0] scan_chain;
-reg [127:0] data_o;
 
 parameter CLK_PERIOD = 10;
 
@@ -27,10 +20,6 @@ localparam AES_DECRYPT = 1;
 
 reg [1:0] fsm, fsm_new;
 
-always @(posedge clk)
-begin
-    #200 load_i = ~load_i;
-end
 
 
 always @(posedge trigger) begin
@@ -53,10 +42,7 @@ begin
 end
 
 
-initial begin
-    clk = 1'b0;
-    forever #5 clk = ~clk;
-end
+
 
 task reset_dut;
 begin
@@ -94,26 +80,9 @@ end
 endtask
 
 initial begin
-    // Counter plaintext, hardcoded key
-//    reset_dut();
-    
 
-    
-//        encrypt(128'h00112233445566778899aabbccddeeff,
-//                         256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                         1'b1,
-//                         1'b0,
-//                         1'b0);
-
-    //8ea2b7ca516745bfeafc49904b496089s
     reset_dut();
-//        encrypt(128'h00112233445566778899aabbccddeeff,
-//                         256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                         1'b1,
-//                         1'b0,
-//                         1'b0);
 
-    //8ea2b7ca516745bfeafc49904b496089
 end
 
 //assign temp = 128'h00112233445566778899aabbccddeeff;
@@ -121,8 +90,8 @@ end
 always @(posedge clk)
 
     begin
-    
-        encrypt(128'h00112233445566778899aabbccddeeff,
+    	busy_o = 1;
+      encrypt(128'h00112233445566778899aabbccddeeff,
                          256'h0000000000000000000000000000000000000000000000000000000000000000,
                          1'b1,
                          1'b1,
@@ -131,94 +100,24 @@ always @(posedge clk)
     
     if (trigger == 1'b1)
        begin
-         o_text[127:0] <= sc_out[127:0];
+         data_o[127:0] = sc_out[127:0];
+         busy_o = 0;
        end
 
     
     end
 
-////***************original code begins**********************
-// initial begin
-//     // Counter plaintext, hardcoded key
-//     reset_dut();
-//     encrypt(128'h00112233445566778899aabbccddeeff,
-//                  256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                  1'b0,
-//                  1'b0,
-//                  1'b0);
-//     // f29000b62a499fd0a9f39a6add2e7780
-//     encrypt(128'h00112233445566778899aabbccddeeff,
-//                  256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                  1'b0,
-//                  1'b0,
-//                  1'b0);
-//     // 75e20829172112bbf2a04d3d2b12433d
 
-//     // SC plaintext, hardcoded key
-//     reset_dut();
-//     encrypt(128'h00112233445566778899aabbccddeeff,
-//                  256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                  1'b1,
-//                  1'b0,
-//                  1'b0);
-//     //8ea2b7ca516745bfeafc49904b496089
-//     encrypt(128'h00112233445566778899aabbccddeeff,
-//                  256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                  1'b1,
-//                  1'b0,
-//                  1'b0);
-//     //8ea2b7ca516745bfeafc49904b496089
+//aes_if DUT(clk, rst_n, scan_chain, enable, trigger, sc_out);
 
-//     // Counter plaintext, SC key
-//     reset_dut();
-//     encrypt(128'h00112233445566778899aabbccddeeff,
-//                  256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                  1'b0,
-//                  1'b1,
-//                  1'b0);
-//     // dc95c078a2408989ad48a21492842087
-//     encrypt(128'h00112233445566778899aabbccddeeff,
-//                  256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                  1'b0,
-//                  1'b1,
-//                  1'b0);
-//     //7bc3026cd737103e62902bcd18fb0163
-
-//     // SC plaintext, SC key
-//     reset_dut();
-//     encrypt(128'h00112233445566778899aabbccddeeff,
-//                  256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                  1'b1,
-//                  1'b1,
-//                  1'b0);
-//     //1c060f4c9e7ea8d6ca961a2d64c05c18
-//     encrypt(128'h00112233445566778899aabbccddeeff,
-//                  256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                  1'b1,
-//                  1'b1,
-//                  1'b0);
-//     //1c060f4c9e7ea8d6ca961a2d64c05c18
-
-//     // Ciphertext Output, Counter plaintext, hardcoded key
-//     reset_dut();
-//     encrypt(128'h00112233445566778899aabbccddeeff,
-//                  256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                  1'b0,
-//                  1'b0,
-//                  1'b1);
-//     encrypt(128'h00112233445566778899aabbccddeeff,
-//                  256'h0000000000000000000000000000000000000000000000000000000000000000,
-//                  1'b0,
-//                  1'b0,
-//                  1'b1);
-//     //f29000b62a499fd0a9f39a6add2e7780
-
-
-
-// end
-
-
-aes_if DUT(clk, rst_n, scan_chain, enable, trigger, sc_out);
-endmodule // tb
-
-////***************original code ends**********************
+   aes_if DUT (
+       .CLK             (clk),
+       .RST_N          (rst_n),
+       .SCAN_CHAIN      (scan_chain),
+       .ENABLE          (enable),
+       .TRIGGER_EXT     (trigger),
+       .CIPHERTEXT      (sc_out),//enc mode
+       .CT_OUT          ()
+   );
+   
+endmodule
