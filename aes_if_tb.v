@@ -89,23 +89,27 @@ end
 
 always @(posedge clk)
 
+begin
+    if(load_i == 1)
     begin
-    	busy_o = 1;
-      encrypt(128'h00112233445566778899aabbccddeeff,
+
+        busy_o = 1;
+        encrypt(128'h00112233445566778899aabbccddeeff,
                          256'h0000000000000000000000000000000000000000000000000000000000000000,
                          1'b1,
                          1'b1,
                          1'b0);    
-
+        // enable = 1;
     
-    if (trigger == 1'b1)
+    if (done == 1'b1)
        begin
-         data_o[127:0] = sc_out[127:0];
-         busy_o = 0;
+         o_text[127:0] <= sc_out[127:0];
+         busy_o <= 0;
        end
 
-    
     end
+
+end
 
 
 //aes_if DUT(clk, rst_n, scan_chain, enable, trigger, sc_out);
