@@ -12,6 +12,18 @@ module aes_core (
 	output reg busy_o
 );
 
+localparam AES_128 = 0;
+localparam AES_192 = 1;
+localparam AES_256 = 2;
+
+localparam AES_KEYSCHED = 0;
+localparam AES_DECRYPT = 1;
+
+//(* max_fanout = "1024" *)
+reg dec_r;
+reg [1:0] fsm, fsm_new;
+
+
 reg rst_n = 0;
 reg [1:0] counter = 2'b00;
 reg enable = 0;
@@ -22,7 +34,7 @@ reg [127:0] o_text;
 reg [31:0] counter2 = 0;
 wire trigger;
 reg done = 0;
-reg [386:0]sc_out;
+wire [386:0]sc_out;
 wire [386:0] scan_chain;
 
 parameter CLK_PERIOD = 10;
@@ -86,37 +98,51 @@ begin
 end
 endtask
 
+
+
+
 initial begin
 
-    reset_dut();
+reset_dut();
 
 end
 
-//assign temp = 128'h00112233445566778899aabbccddeeff;
 
-always @(posedge clk, posedge done)
-
+always @(posedge clk)
 begin
-    if(load_i == 1)
-    begin
+	busy_o <= 0;
+	if(load_i)
+	begin
+		fsm <= AES_KEYSCHED;		
+		busy_o <= 1;
+		data_o <= 0;
+	end
+	else if(busy_o)
+	begin
+		busy_o <= 1;
+		case(fsm)
+		AES_KEYSCHED:
+		begin
 
-        busy_o = 1;
         encrypt(data_i,
-                         256'h0000000000000000000000000000000000000000000000000000000000000000,
-                         1'b1,
-                         1'b1,
-                         1'b0);    
+                256'h0000000000000000000000000000000000000000000000000000000000000000,
+                1'b1,
+                1'b1,
+                1'b0);  
+			if(done == 1)
+			begin
+				fsm <= AES_DECRYPT;
+			end
 
-
-    end
-
-end
-
-always @(posedge done)
-begin
-    busy_o  <= 0;
-    data_o <= sc_out[127:0];
-
+		end
+		AES_DECRYPT:
+		begin
+			data_o <= sc_out[127:0];
+			busy_o <= 0;
+		
+		end
+		endcase
+	end
 end
 
 
