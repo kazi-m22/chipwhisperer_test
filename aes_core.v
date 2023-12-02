@@ -1,17 +1,6 @@
 `timescale 1ns / 1ps
 
 
-module aes_core (
-	input wire clk,
-	input wire load_i,
-	input wire [255:0] key_i,
-	input wire [127:0] data_i,
-	input wire [1:0] size_i,
-	input wire dec_i,
-	output reg [127:0] data_o,
-	output reg busy_o
-);
-
 wire [386:0] scan_chain;
 wire  trigger;
 
@@ -62,7 +51,7 @@ begin
     pt_sel = sc_pt_sel;
     key_sel = sc_key_sel;
     ct_out_sel = sc_ct_out_sel;
-    #(1 * CLK_PERIOD);
+    //#(1 * CLK_PERIOD);
     enable = 1'b1;
 
 end
@@ -89,10 +78,7 @@ begin
     end
 end
 
-// end of done control signal
-//assign scan_chain = {data_i, key_i, pt_sel, key_sel, ct_out_sel};
-//assign enable = load_i;
-//assign trigger = done;
+
 
 initial begin
 
@@ -102,7 +88,7 @@ end
 
 always @(posedge clk)
 begin
-	//busy_o = 0;
+
 
 	if(load_i)
 	begin
@@ -145,8 +131,9 @@ always @(posedge done)
 begin
 	busy_o <= 0;
 	data_o <= sc_out[127:0];
+
 end
-//aes_if DUT(clk, rst_n, scan_chain, enable, trigger, sc_out);
+
 
    aes_if DUT (
        .CLK             (clk),
