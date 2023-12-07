@@ -1,7 +1,14 @@
-`timescale 1ns/1ps
+module aes_core (
+	input wire clk,
+	input wire load_i,
+	input wire [255:0] key_i,
+	input wire [127:0] data_i,
+	input wire [1:0] size_i,
+	input wire dec_i,
+	output reg [127:0] data_o,
+	output reg busy_o
+);
 
-module tb(output reg [127:0] data_o);
-reg clk;
 reg rst_n = 0;
 reg [1:0] counter = 2'b00;
 reg enable = 0;
@@ -14,8 +21,8 @@ reg [2:0] fsm, fsm_new;
 wire trigger;
 reg done = 0;
 wire [386:0]sc_out;
-reg busy_o;
-reg load_i = 0;
+//reg busy_o;
+//reg load_i = 0;
 wire [386:0] scan_chain;
 
 
@@ -30,6 +37,26 @@ localparam ENCRYPT = 3'b010;
 localparam WAIT = 3'b011;
 localparam FINISH = 3'b100;
 
+always @(posedge trigger)
+begin
+
+    counter = counter + 1;
+    if (counter == 2'b10)
+    begin
+        done = 1;
+    end
+end
+
+
+always @(negedge trigger) 
+begin
+    if (counter == 2'b10 & done == 1) begin
+        done = 0;
+        counter = 2'b00;
+    end
+end
+
+
 
 task reset_dut;
 begin
@@ -40,30 +67,12 @@ begin
     key_sel = 1'b0;
     ct_out_sel = 1'b0;
 
-    rst_n = 1'b0;
-    #(1 * CLK_PERIOD);
+//    rst_n = 1'b0;
+//    #(1 * CLK_PERIOD);
     rst_n = 1'b1;
-    #(2 * CLK_PERIOD);
+//    #(2 * CLK_PERIOD);
 end
 endtask
-
-
-
-
-always @(posedge clk)
-begin
-    #2000
-    #300 load_i = ~load_i;
-    #1 load_i = ~load_i;
-
-end
-
-initial begin
-    clk = 1'b0;
-    forever #5 clk = ~clk;
-end
-
-
 
 always @(posedge clk)
 begin
@@ -86,11 +95,11 @@ begin
        end
        ENCRYPT: begin
            fsm <= WAIT;
-           // rst_n <= 1'b0;
+           //rst_n <= 1'b0;
            enable <= 1'b1;
        end
        WAIT: begin
-            if (trigger != 1) begin
+            if (done != 1) begin
                 fsm <= WAIT;
                 count <= count + 1;
             end
