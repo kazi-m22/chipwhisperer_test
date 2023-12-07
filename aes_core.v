@@ -1,7 +1,14 @@
-`timescale 1ns/1ps
+module aes_core (
+	input wire clk,
+	input wire load_i,
+	input wire [255:0] key_i,
+	input wire [127:0] data_i,
+	input wire [1:0] size_i,
+	input wire dec_i,
+	output reg [127:0] data_o,
+	output reg busy_o
+);
 
-module tb(output reg [127:0] data_o);
-reg clk;
 reg rst_n = 0;
 reg [1:0] counter = 2'b00;
 reg enable = 0;
@@ -14,8 +21,8 @@ reg [2:0] fsm, fsm_new;
 wire trigger;
 reg done = 0;
 wire [386:0]sc_out;
-reg busy_o;
-reg load_i = 0;
+//reg busy_o;
+//reg load_i = 0;
 wire [386:0] scan_chain;
 
 
@@ -24,29 +31,13 @@ integer count = 0;
 assign scan_chain = {i_text, key, 1'b1, 1'b1, 1'b0};
 
 
+
 localparam RESET = 3'b000;
 localparam INIT = 3'b001;
 localparam ENCRYPT = 3'b010;
 localparam WAIT = 3'b011;
 localparam COLLECT = 3'b100;
 localparam FINISH = 3'b101;
-
-
-task reset_dut;
-begin
-    enable = 1'b0;
-    i_text = 127'b0;
-    key = 255'b0;
-    pt_sel = 1'b0;
-    key_sel = 1'b0;
-    ct_out_sel = 1'b0;
-
-    rst_n = 1'b0;
-    #(1 * CLK_PERIOD);
-    rst_n = 1'b1;
-    #(2 * CLK_PERIOD);
-end
-endtask
 
 always @(posedge trigger)
 begin
@@ -68,20 +59,19 @@ begin
 end
 
 
-always @(posedge clk)
+
+task reset_dut;
 begin
-    #2000
-    #300 load_i = ~load_i;
-    #1 load_i = ~load_i;
+    enable = 1'b0;
+    i_text = 127'b0;
+    key = 255'b0;
+    pt_sel = 1'b0;
+    key_sel = 1'b0;
+    ct_out_sel = 1'b0;
 
+    rst_n = 1'b1;
 end
-
-initial begin
-    clk = 1'b0;
-    forever #5 clk = ~clk;
-end
-
-
+endtask
 
 always @(posedge clk)
 begin
@@ -126,3 +116,16 @@ begin
        default: fsm <= RESET;
     endcase
 end
+
+aes_if DUT (
+       .CLK             (clk),
+       .RST_N          (rst_n),
+       .SCAN_CHAIN      (scan_chain),
+       .ENABLE          (enable),
+       .TRIGGER_EXT     (trigger),
+       .CIPHERTEXT      (sc_out),//enc mode
+       .CT_OUT          ()
+   );
+
+
+endmodule
