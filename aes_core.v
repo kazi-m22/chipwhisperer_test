@@ -1,26 +1,34 @@
-`timescale 1ns / 1ps
+`timescale 1ns/1ps
 
-
-wire [386:0] scan_chain;
-wire  trigger;
-
-
-localparam AES_KEYSCHED = 0;
-localparam AES_DECRYPT = 1;
-
-reg [1:0] fsm, fsm_new;
-reg pt_sel = 1'b1, key_sel = 1'b1, ct_out_sel = 1'b0;
-reg rst_n, enable;
+module tb(output reg [127:0] data_o);
+reg clk;
+reg rst_n = 0;
 reg [1:0] counter = 2'b00;
+reg enable = 0;
 reg [127:0] i_text;
 reg [255:0] key;
-reg [127:0] o_text;
-reg [31:0] counter2 = 0;
+reg pt_sel, key_sel, ct_out_sel;
+reg [2:0] fsm, fsm_new;
+
+
+wire trigger;
 reg done = 0;
 wire [386:0]sc_out;
+reg busy_o;
+reg load_i = 0;
+wire [386:0] scan_chain;
 
-assign scan_chain = {data_i, key_i, 1'b1, 1'b1, 1'b0};
+
 parameter CLK_PERIOD = 10;
+integer count = 0;
+assign scan_chain = {i_text, key, 1'b1, 1'b1, 1'b0};
+
+
+localparam RESET = 3'b000;
+localparam INIT = 3'b001;
+localparam ENCRYPT = 3'b010;
+localparam WAIT = 3'b011;
+localparam FINISH = 3'b100;
 
 
 task reset_dut;
@@ -40,109 +48,60 @@ end
 endtask
 
 
-task encrypt(input [127:0] sc_pt, 
-                  input [256:0] sc_key,
-                  input sc_pt_sel,
-                  input sc_key_sel,
-                  input sc_ct_out_sel);
+
+
+always @(posedge clk)
 begin
-    i_text = sc_pt;
-    key = sc_key;
-    pt_sel = sc_pt_sel;
-    key_sel = sc_key_sel;
-    ct_out_sel = sc_ct_out_sel;
-    //#(1 * CLK_PERIOD);
-    enable = 1'b1;
+    #2000
+    #300 load_i = ~load_i;
+    #1 load_i = ~load_i;
 
 end
-endtask
-
-//***********assignign done control signal for double trigger at each encyrption
-
-always @(posedge trigger) begin
-
-    counter = counter + 1;
-    if (counter == 2'b10)
-    begin
-        done = 1;
-        // counter = 0;
-    end
-end
-
-
-always @(negedge trigger) 
-begin
-    if (counter == 2'b10 & done == 1) begin
-        done = 0;
-        counter = 2'b00;
-    end
-end
-
-
 
 initial begin
-
-reset_dut();
-
+    clk = 1'b0;
+    forever #5 clk = ~clk;
 end
+
+
 
 always @(posedge clk)
 begin
 
 
-	if(load_i)
-	begin
+    case(fsm)
+       RESET: begin
+           fsm <= INIT;
+           reset_dut();
+           data_o  <= 0;
+           key <= 0;
+           busy_o <= 0;
+           count <= 0;
 
-
-		fsm = AES_KEYSCHED;	
-		//round <= 0;
-		busy_o <= 1;
-		data_o <= 0;
-		//dec_r <= dec_i;
-		//state <= data_i;
-	end
-	else if(busy_o)
-	begin
-		busy_o <= 1;
-		case(fsm)
-		AES_KEYSCHED:
-		begin
-         encrypt(data_i,
-          key_i,
-          1'b1,
-          1'b1,
-          1'b0); 
-//			if (done == 1'b1)
-//				fsm = AES_DECRYPT;
-//					busy_o <= 0;
-		end
-/*		
-		AES_DECRYPT:
-		begin
-	         data_o = sc_out[127:0];
-				busy_o = 0;
-		end
-*/
-		endcase
-	end
+       end
+       INIT: begin
+           fsm <= ENCRYPT;
+           i_text <= 128'h00112233445566778899aabbccddeeff;
+           key <= 256'h0;
+       end
+       ENCRYPT: begin
+           fsm <= WAIT;
+           // rst_n <= 1'b0;
+           enable <= 1'b1;
+       end
+       WAIT: begin
+            if (trigger != 1) begin
+                fsm <= WAIT;
+                count <= count + 1;
+            end
+            else
+                fsm <= FINISH;
+       end
+       FINISH: begin
+           busy_o <= 1;
+           data_o <= sc_out[127:0];
+           fsm <=  RESET;
+       end
+       default: fsm <= RESET;
+    endcase
 end
-
-always @(posedge done)
-begin
-	busy_o <= 0;
-	data_o <= sc_out[127:0];
-
-end
-
-
-   aes_if DUT (
-       .CLK             (clk),
-       .RST_N          (rst_n),
-       .SCAN_CHAIN      (scan_chain),
-       .ENABLE          (enable),
-       .TRIGGER_EXT     (trigger),
-       .CIPHERTEXT      (sc_out),//enc mode
-       .CT_OUT          ()
-   );
-   
-endmodule
